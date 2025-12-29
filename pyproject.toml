@@ -4,7 +4,12 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = ["rich>=14.2.0"]
+dependencies = [
+    "flet[all]>=0.80.0",
+    "pandas>=2.3.3",
+    "rich>=14.2.0",
+    "sqlalchemy>=2.0.45",
+]
 
 
 [tool.ruff]
@@ -12,7 +17,7 @@ line-length = 119
 
 [tool.ruff.lint]
 select = ["C", "E", "F", "I", "W"]
-ignore = ["E402"]
+ignore = ["E402", "E501"]
 
 [tool.ruff.lint.per-file-ignores]
 
