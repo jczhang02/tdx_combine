@@ -1,17 +1,16 @@
 import os
 import re
-from typing import Dict, List, Pattern, Union
+from typing import Dict, List, Pattern, Tuple, Union
 
 import pandas as pd
-from rich import print
 
 
 def get_infoharbor_block_stock(path: str | os.PathLike[str]) -> pd.DataFrame:
-    block_records: List[Dict[str, Union[str, List[str]]]] = []
+    block_records: List[Dict[str, Union[str, List[Tuple[str, int]]]]] = []
 
     cur_name: str = ""
     cur_code: str = ""
-    cur_stocks: list[str] = []
+    cur_stocks: List[Tuple[str, int]] = []
 
     block_start_pattern: Pattern[str] = re.compile(r"#[a-zA-Z]+_([^,]+)")
 
@@ -26,9 +25,14 @@ def get_infoharbor_block_stock(path: str | os.PathLike[str]) -> pd.DataFrame:
 
                 if match:
                     if cur_code and cur_name and cur_stocks:
-                        block_records.append({"code": cur_code, "name": cur_name, "stocks": cur_stocks})
+                        block_records.append(
+                            {
+                                "code": cur_code,
+                                "name": cur_name,
+                                "stocks": cur_stocks,
+                            }
+                        )
 
-                    # Then, reset state variables for the new block.
                     new_block_name = match.group(1).strip()
                     parts = line.split(",")
                     new_block_code = parts[2].strip() if len(parts) > 2 else ""
@@ -37,8 +41,15 @@ def get_infoharbor_block_stock(path: str | os.PathLike[str]) -> pd.DataFrame:
                     cur_code = new_block_code
                     cur_stocks = []
                 else:
-                    codes = [code.strip().split("#")[-1] for code in line.split(",") if code.strip()]
-                    cur_stocks.extend(codes)
+                    stock_parts: List[str] = [code.strip() for code in line.split(",") if code.strip()]
+
+                    for stock_part in stock_parts:
+                        if "#" in stock_part:
+                            splited: List[str] = stock_part.split(
+                                sep="#",
+                                maxsplit=1,
+                            )
+                            cur_stocks.append((splited[1], int(splited[0])))
 
             if cur_code and cur_name and cur_stocks:
                 block_records.append({"code": cur_code, "name": cur_name, "stocks": cur_stocks})

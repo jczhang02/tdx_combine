@@ -22,6 +22,8 @@ class Stock(Base):
     __tablename__ = "stocks"
     id = Column(Integer, primary_key=True, autoincrement=True)
     code = Column(String, unique=True, nullable=False, index=True)
+    region = Column(Integer, unique=False, nullable=False)
+    name = Column(String(100), unique=False, nullable=True)
     blocks = relationship("Block", secondary=stock_block_association, back_populates="stocks")
 
     def __repr__(self):

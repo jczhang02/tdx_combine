@@ -1,26 +1,29 @@
 import os
-from typing import List, Tuple
+from typing import List
 
-from sqlalchemy.orm import Session, joinedload
-
-from database import Block
+from utils import CombinationResultDict
 
 
 def export_combinations(
     path: str | os.PathLike[str],
-    session: Session,
-    ret: List[tuple],
+    ret: List[CombinationResultDict],
 ) -> None:
-    triplet: Tuple[str, str, str] = ret[0][0]
+    if len(ret) != 3:
+        raise RuntimeError("combination results is not equal to 3")
 
-    NAME = ["A.blk", "B.blk", "C.blk"]
+    NAME: List[str] = ["ZH1.blk", "ZH2.blk", "ZH3.blk"]
 
-    for index, code in enumerate(triplet):
+    for index, part in enumerate(ret):
         save_name: str = os.path.join(path, NAME[index])
 
-        block = session.query(Block).options(joinedload(Block.stocks)).filter(Block.code == code).one_or_none()
-        stock_codes = [stock.code for stock in block.stocks]  # pyright: ignore
+        blocks: List[str] = part["blocks"]
+        stocks: List[str] = part["stocks"]
 
         with open(save_name, "w") as f:
-            [f.write(str(item) + "\n") for item in stock_codes]
-            f.close()
+            for block in blocks:
+                f.write(str(block) + "\n")
+
+            for stock in stocks:
+                f.write(str(stock) + "\n")
+
+        f.close()

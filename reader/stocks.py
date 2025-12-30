@@ -10,7 +10,7 @@ def get_stocks(path: str | os.PathLike[str], mappings: Dict[str, str]) -> pd.Dat
             path,
             sep="|",
             header=None,
-            names=["0", "code", "code1", "code2", "code3", "code4"],
+            names=["region", "code", "code1", "code2", "code3", "code4"],
             dtype={"code": str},
         )
         df = df.dropna(
@@ -21,7 +21,7 @@ def get_stocks(path: str | os.PathLike[str], mappings: Dict[str, str]) -> pd.Dat
         df["blocks"] = [
             [item for item in row if pd.notna(item)] for row in df[["code1", "code2", "code3", "code4"]].values
         ]
-        stocks: pd.DataFrame = df[["code", "blocks"]].copy()
+        stocks: pd.DataFrame = df[["code", "region", "blocks"]].copy()
 
         stocks["blocks"] = stocks["blocks"].apply(lambda lst: [mappings[code] for code in lst if code in mappings])
         return stocks
