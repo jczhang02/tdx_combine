@@ -1,0 +1,9 @@
+TDX_INSTALL_DIR: /home/jc/dev/tdx_combine/data/new_tdx
+TDX_CACHE_DIR: /home/jc/dev/tdx_combine/data/new_tdx/T0002/hq_cache
+MODE_PATH: /home/jc/dev/tdx_combine/data/Mode3.txt
+RET_SAVE_DIR: ./save
+DATABASE_URL: sqlite+aiosqlite:///./data/model.db
+DEFAULT_EXTENSION: blk
+BLOCK_PATH: tdxzs3.cfg
+STOCK_PATH: tdxhy.cfg
+ADDITIONAL_PATH: infoharbor_block.dat

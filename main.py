@@ -1,46 +1,110 @@
-TDX_CACHE_DIR: str = "./data/hq_cache/"  # NOTE: value need to be set at the first time
+CONFIG_PATH: str = "./config/config.yaml"
 
-MODEL_PATH: str = "./data/Mode3.txt"  # NOTE: value via file picker
+from typing import cast
 
-DATABASE_URL: str = "sqlite:///./data/model.db"
-INFOHARBOR_PATH: str = "infoharbor_block.dat"
-BLOCK_PATH: str = "tdxzs3.cfg"
-STOCK_PATH: str = "tdxhy.cfg"
+import flet as ft
+from omegaconf import DictConfig, OmegaConf
+from sqlalchemy import delete
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    async_sessionmaker,
+    create_async_engine,
+)
 
-RET_SAVE_DIR: str = "./save"
-DEFAULT_EXTENSION: str = "blk"
-
-from action import export_combinations, get_combination_count, update_data
-from database import setup_database
-
-import time
+from src.core import get_combination_count, update_data
+from src.core.database import Base, mode2database
+from src.core.database.models import CalcResult, Mode
+from src.core.readers.modes import get_modes
+from src.ui import App
 
 
-def main():
-    time1 = time.time()
-    session = setup_database(DATABASE_URL=DATABASE_URL)
-    update_data(
-        session=session,
-        TDX_CACHE_DIR=TDX_CACHE_DIR,
-        BLOCK_PATH=BLOCK_PATH,
-        STOCK_PATH=STOCK_PATH,
-        INFOHARBOR_PATH=INFOHARBOR_PATH,
-        empty=True,
+async def run():
+    with open(CONFIG_PATH, "r", encoding="utf-8") as fp:
+        cfg: DictConfig = cast(DictConfig, OmegaConf.load(fp))
+    # time1 = time.time()
+
+    engine: AsyncEngine = create_async_engine(
+        url=cfg["DATABASE_URL"],
+        pool_size=5,
+        max_overflow=10,
+        echo=False,
     )
-    time2 = time.time()
-    ret = get_combination_count(
-        session=session,
-        path=MODEL_PATH,
+    async_session = async_sessionmaker(
+        bind=engine,
+        expire_on_commit=False,
+        autoflush=False,
+    )
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    re = await update_data(
+        async_session=async_session,
+        TDX_CACHE_DIR=cfg["TDX_CACHE_DIR"],
+        BLOCK_PATH=cfg["BLOCK_PATH"],
+        STOCK_PATH=cfg["STOCK_PATH"],
+        ADDITIONAL_PATH=cfg["ADDITIONAL_PATH"],
+        is_clear=True,
     )
 
-    export_combinations(
-        path=RET_SAVE_DIR,
-        ret=ret,
+    # time2 = time.time()
+
+    # print(f"time for update data: {time2 - time1}")
+
+    # print(re)
+
+    blocks = await get_modes(path=cfg["MODE_PATH"])
+    await mode2database(async_session=async_session, blocks=blocks)
+
+    # time2 = time.time()
+    ret = await get_combination_count(
+        async_session=async_session,
     )
-    time3 = time.time()
-    print(time2 - time1)
-    print(time3 - time2)
+
+    print(ret)
+
+    # export_combinations(
+    #     path=cfg["RET_SAVE_DIR"],
+    #     ret=ret,
+    # )
+
+    # block = session.query(Block).filter(Block.id == 99).one_or_none()
+    # time3 = time.time()
+    # print(time2 - time1)
+
+    await engine.dispose()
+
+
+async def main(page: ft.Page) -> None:
+    with open(CONFIG_PATH, "r", encoding="utf-8") as fp:
+        cfg: DictConfig = cast(DictConfig, OmegaConf.load(fp))
+
+    engine: AsyncEngine = create_async_engine(
+        url=cfg["DATABASE_URL"],
+        pool_size=5,
+        max_overflow=10,
+        echo=False,
+    )
+    async_session = async_sessionmaker(
+        bind=engine,
+        expire_on_commit=False,
+        autoflush=False,
+    )
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    async with async_session() as session:
+        await session.execute(delete(Mode))
+        await session.execute(delete(CalcResult))
+        await session.commit()
+
+    page.title = "TDX Combination"
+    page.padding = 20
+    mainContainer = App(async_session=async_session, cfg=cfg)
+    page.add(mainContainer)
+
+    await engine.dispose()
 
 
 if __name__ == "__main__":
-    main()
+    ft.run(main)
+    # asyncio.run(run())
