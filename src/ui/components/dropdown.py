@@ -14,10 +14,12 @@ class BlocksDropdown(ft.Dropdown):
         super().__init__(
             editable=True,
             label="板块信息",
-            width=220,
             menu_height=200,
+            expand=False,
+            width=240,
             enable_filter=False,
             enable_search=True,
+            text_align=ft.TextAlign.CENTER,
             on_text_change=self.build_options,
         )
         self.async_session = async_session

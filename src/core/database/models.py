@@ -1,8 +1,10 @@
+from datetime import datetime
 from typing import List
 
 from sqlalchemy import (
     JSON,
     Column,
+    DateTime,
     ForeignKey,
     Integer,
     String,
@@ -44,6 +46,8 @@ class Stock(Base):
     code = Column(String, unique=True, nullable=False, index=True)
     region = Column(Integer, unique=False, nullable=False)
     name = Column(String(100), unique=False, nullable=True)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
     blocks: Mapped[List["Block"]] = relationship(
         "Block",
         secondary=stock_block_association,

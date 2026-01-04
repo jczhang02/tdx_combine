@@ -12,7 +12,9 @@ class ModeView(ft.Container):
         self,
         async_session: async_sessionmaker[AsyncSession],
     ) -> None:
-        super().__init__()
+        super().__init__(
+            expand=True,
+        )
         self.importModeFileButton = ImportModeFileButton(
             async_session=async_session,
         )
@@ -26,20 +28,33 @@ class ModeView(ft.Container):
             async_session=async_session,
             dropdown_ref=self.blocksDropdown,
         )
-
         self.content = ft.Column(
             controls=[
-                ft.Column(
+                ft.Row(
                     controls=[
-                        ft.Row(
+                        ft.Column(
                             controls=[
-                                self.importModeFileButton,
-                                self.blocksDropdown,
-                                self.addBlockButton,
-                            ]
+                                ft.Row(
+                                    controls=[
+                                        self.importModeFileButton,
+                                        ft.Row(
+                                            controls=[
+                                                self.blocksDropdown,
+                                                self.addBlockButton,
+                                            ]
+                                        ),
+                                    ],
+                                    spacing=10,
+                                    alignment=ft.MainAxisAlignment.START,
+                                ),
+                            ],
                         ),
-                        self.modeDataTable,
-                    ]
-                )
-            ]
+                    ],
+                    spacing=10,
+                    alignment=ft.MainAxisAlignment.START,
+                ),
+                self.modeDataTable,
+            ],
+            spacing=15,
+            expand=True,
         )

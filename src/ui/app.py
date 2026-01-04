@@ -19,8 +19,7 @@ class App(ft.Container):
         cfg: DictConfig,
     ) -> None:
         super().__init__()
-        self.width = 1536
-        self.height = 864
+        self.expand = True
         self.bgcolor = ft.Colors.WHITE
         self.border_radius = ft.BorderRadius.all(20)
         self.padding = 20
@@ -42,16 +41,23 @@ class App(ft.Container):
                                 self.tdxPathView,
                                 self.custom_block,
                                 self.update_data,
-                            ]
+                            ],
+                            expand=1,
+                            spacing=10,
                         ),
                         ft.Column(
                             controls=[
                                 self.mode,
                                 self.calc,
-                            ]
+                            ],
+                            expand=3,
+                            spacing=10,
                         ),
                     ],
-                    alignment=ft.MainAxisAlignment.END,
+                    expand=True,
+                    spacing=20,
+                    vertical_alignment=ft.CrossAxisAlignment.START,
                 ),
-            ]
+            ],
+            expand=True,
         )

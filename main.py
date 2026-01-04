@@ -1,5 +1,3 @@
-CONFIG_PATH: str = "./config/config.yaml"
-
 from typing import cast
 
 import flet as ft
@@ -13,9 +11,11 @@ from sqlalchemy.ext.asyncio import (
 
 from src.core import get_combination_count, update_data
 from src.core.database import Base, mode2database
+from src.core.database.helpers import get_status
 from src.core.database.models import CalcResult, Mode
 from src.core.readers.modes import get_modes
 from src.ui import App
+from src.utils.constants import CONFIG_PATH, DATABASE_URL
 
 
 async def run():
@@ -24,7 +24,7 @@ async def run():
     # time1 = time.time()
 
     engine: AsyncEngine = create_async_engine(
-        url=cfg["DATABASE_URL"],
+        url=DATABASE_URL,
         pool_size=5,
         max_overflow=10,
         echo=False,
@@ -36,6 +36,9 @@ async def run():
     )
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    ret = await get_status(async_session=async_session)
+    print(ret)
 
     re = await update_data(
         async_session=async_session,
@@ -99,8 +102,8 @@ async def main(page: ft.Page) -> None:
 
     page.title = "TDX Combination"
     page.padding = 20
-    mainContainer = App(async_session=async_session, cfg=cfg)
-    page.add(mainContainer)
+    app = App(async_session=async_session, cfg=cfg)
+    page.add(app)
 
     await engine.dispose()
 

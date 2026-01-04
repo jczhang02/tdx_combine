@@ -50,7 +50,7 @@ save=1
 
 # shell command, use quotation for filenames containing spaces
 # check ":AsyncTaskMacro" to see available macros
-command=uv run flet run --recursive --ignore-dirs data,save
+command=uv run flet run --ignore-dirs .git,.venv,data
 
 # working directory, can change to $(VIM_ROOT) for project root
 cwd=$(VIM_ROOT)

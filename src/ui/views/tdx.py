@@ -13,14 +13,16 @@ class TdxPathView(ft.Container):
     ):
         super().__init__()
         self.cfg: DictConfig = cfg
-        self.tdxPathDisplay = TdxPathDisplay(cfg=cfg)
-        self.tdxPathButton = TdxPathButton(
+        self.tdxPathDisplay = TdxPathDisplay(
             cfg=cfg,
         )
+        self.tdxPathButton = TdxPathButton(cfg=cfg)
 
         self.content = ft.Row(
             controls=[
                 self.tdxPathDisplay,
                 self.tdxPathButton,
-            ]
+            ],
+            spacing=10,
+            alignment=ft.MainAxisAlignment.CENTER,
         )

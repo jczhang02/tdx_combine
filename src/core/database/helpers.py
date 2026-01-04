@@ -3,6 +3,8 @@ from typing import Dict, List
 
 from sqlalchemy import (
     URL,
+    distinct,
+    func,
     select,
 )
 from sqlalchemy.ext.asyncio import (
@@ -13,7 +15,8 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.ext.asyncio.engine import AsyncEngine
 from sqlalchemy.orm import Session
 
-from .models import Base, Block, Stock
+from src.core.database.models import Base, Block, Stock, stock_block_association
+from src.utils.types import Status
 
 
 async def create_async_session(
@@ -88,3 +91,48 @@ async def construct_blocks(
             blocks.append({"stock_id": stock_id, "block_id": block_id})
 
     return blocks
+
+
+async def get_status(
+    async_session: async_sessionmaker[AsyncSession],
+) -> Status:
+    ret: Status = {
+        "status": 0,
+        "block_count": 0,
+        "stock_count": 0,
+        "block_valid_count": 0,
+        "update_at": None,
+        "calc": 0,
+    }
+    try:
+        async with async_session() as session:
+            stmt_block = select(func.count()).select_from(Block)
+            stmt_stock = select(func.count()).select_from(Stock)
+            stmt_block_valid = select(
+                func.count(distinct(stock_block_association.c.block_id))
+            ).select_from(stock_block_association)
+            block_count = await session.scalar(stmt_block)
+            stock_count = await session.scalar(stmt_stock)
+            block_valid_count = await session.scalar(stmt_block_valid)
+
+            if block_count and stock_count:
+                ret["status"] = 1
+            ret["block_count"] = block_count
+            ret["stock_count"] = stock_count
+            ret["block_valid_count"] = block_valid_count
+
+            stmt_update_at = select(func.max(Stock.updated_at))
+            update_at = await session.scalar(stmt_update_at)
+            ret["update_at"] = update_at
+
+        return ret
+
+    except Exception:
+        return {
+            "status": 0,
+            "block_count": 0,
+            "stock_count": 0,
+            "update_at": None,
+            "block_valid_count": 0,
+            "calc": 0,
+        }

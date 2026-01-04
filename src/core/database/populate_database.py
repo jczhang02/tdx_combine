@@ -13,7 +13,7 @@ from src.core.database.models import (
     Stock,
     stock_block_association,
 )
-from src.utils.types import CombinationResultDict
+from src.utils.types import CombinationResultDict, StockDict
 
 
 async def clear_database(
@@ -256,6 +256,7 @@ async def mode2database(
 
         data = []
         for (record,) in matching:
+            print(len(record.stocks))
             mode = {
                 "code": record.code,
                 "name": record.name,
@@ -278,4 +279,49 @@ async def result2database(
 
     async with async_session() as session:
         await session.execute(insert(CalcResult).values(result))
+        await session.commit()
+
+
+async def insert_block2database(
+    async_session: async_sessionmaker[AsyncSession],
+    block_id: int,
+    data: List[StockDict],
+) -> None:
+    async with async_session() as session:
+        stmt = (
+            insert(Stock)
+            .values(data)
+            .on_conflict_do_nothing(index_elements=[Stock.code])
+        )
+        await session.execute(stmt)
+        await session.commit()
+
+    stock_codes = [stock["code"] for stock in data]
+
+    async with async_session() as session:
+        stmt_stock_ids = select(Stock.id).where(Stock.code.in_(stock_codes))
+        result_stock_ids = await session.execute(stmt_stock_ids)
+
+        stock_ids_unprocessed = result_stock_ids.all()
+        stock_ids: List[int] = [
+            int(stock_id) for (stock_id,) in stock_ids_unprocessed
+        ]
+
+        print(stock_ids)
+
+        asso_values = [
+            {
+                "stock_id": stock_id,
+                "block_id": block_id,
+            }
+            for stock_id in stock_ids
+        ]
+
+        stmt_asso = (
+            insert(stock_block_association)
+            .values(asso_values)
+            .on_conflict_do_nothing(index_elements=["stock_id", "block_id"])
+        )
+
+        await session.execute(stmt_asso)
         await session.commit()

@@ -19,5 +19,7 @@ class CalcView(ft.Container):
             controls=[
                 self.calcButton,
                 self.exportResultButton,
-            ]
+            ],
+            spacing=10,
+            alignment=ft.MainAxisAlignment.START,
         )

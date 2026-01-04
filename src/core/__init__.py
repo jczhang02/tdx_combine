@@ -1,5 +1,6 @@
 from .combine import get_combination_count
 from .export import export_combinations
+from .insertblock import insert_block
 from .mode import import_mode_list, insert_mode_item
 from .update import update_data
 
@@ -10,4 +11,5 @@ __all__: list[str] = [
     "export_combinations",
     "import_mode_list",
     "insert_mode_item",
+    "insert_block",
 ]

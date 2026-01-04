@@ -9,20 +9,24 @@ from src.core import (
     get_combination_count,
     import_mode_list,
     insert_mode_item,
+    update_data,
 )
+from src.core.insertblock import insert_block
 from src.core.readers import get_modes
 from src.utils import CONFIG_PATH
 from src.utils.types import Response
 
 
 @ft.control
-class TdxPathButton(ft.Button):
+class TdxPathButton(ft.FilledButton):
     def __init__(
         self,
         cfg: DictConfig,
     ) -> None:
         super().__init__(
+            icon=ft.Icons.BROWSER_UPDATED,
             content="选择路径",
+            expand=False,
         )
         self.cfg = cfg
         self.on_click = self.button_clicked
@@ -107,15 +111,66 @@ class ImportModeFileButton(ft.Button):
                     )
 
 
+@ft.control
+class UpdateDataButton(ft.FilledButton):
+    def __init__(
+        self,
+        async_session: async_sessionmaker[AsyncSession],
+        cfg: DictConfig,
+    ) -> None:
+        super().__init__(
+            content="更新数据",
+            icon=ft.Icons.UPDATE,
+        )
+        self.cfg = cfg
+        self.async_session = async_session
+        self.on_click = self.button_clicked
+
+        self.alertDialog = ft.AlertDialog(
+            modal=True,
+            icon=ft.Icon(ft.Icons.ERROR_OUTLINED, color=ft.Colors.ERROR),
+            alignment=ft.Alignment.CENTER,
+            actions=[
+                ft.TextButton(
+                    "确定", on_click=lambda __e__: ft.context.page.pop_dialog()
+                ),
+            ],
+        )
+
+    async def button_clicked(self) -> None:
+        ft.context.page.pubsub.send_all("data_before_update")
+        response = await update_data(
+            async_session=self.async_session,
+            TDX_CACHE_DIR=self.cfg["TDX_CACHE_DIR"],
+            BLOCK_PATH=self.cfg["BLOCK_PATH"],
+            STOCK_PATH=self.cfg["STOCK_PATH"],
+            ADDITIONAL_PATH=self.cfg["ADDITIONAL_PATH"],
+            is_clear=True,
+        )
+        if response["code"] != 200:
+            self.alertDialog.content = ft.Text(
+                f"更新数据出现问题 {response['message']}"
+            )
+            ft.context.page.show_dialog(self.alertDialog)
+
+        else:
+            ft.context.page.pubsub.send_all("data_updated")
+
+
 class AddBlockButton(ft.FloatingActionButton):
     def __init__(
         self,
         async_session: async_sessionmaker[AsyncSession],
         dropdown_ref: ft.Dropdown,
     ):
-        super().__init__(icon=ft.Icons.ADD, on_click=self.add_clicked)
+        super().__init__(
+            icon=ft.Icons.ADD,
+            on_click=self.add_clicked,
+            mini=True,
+        )
         self.async_session = async_session
         self.dropdown_ref = dropdown_ref
+        self.expand = False
 
         self.alertDialog = ft.AlertDialog(
             modal=True,
@@ -169,6 +224,10 @@ class CalcButton(ft.FilledButton):
         )
 
     async def button_clicked(self, __e__: ft.Event[ft.Button]) -> None:
+        ft.context.page.pubsub.send_all_on_topic(
+            topic="calc",
+            message="start",
+        )
         response = await get_combination_count(
             async_session=self.async_session,
             top_n=3,
@@ -176,6 +235,15 @@ class CalcButton(ft.FilledButton):
         if response["code"] != 200:
             self.calcAlertDialog.content = ft.Text(response["message"])
             ft.context.page.show_dialog(self.calcAlertDialog)
+            ft.context.page.pubsub.send_all_on_topic(
+                topic="calc",
+                message="error",
+            )
+        else:
+            ft.context.page.pubsub.send_all_on_topic(
+                topic="calc",
+                message="end",
+            )
 
 
 @ft.control
@@ -215,3 +283,51 @@ class ExportResultButton(ft.Button):
         if response["code"] != 200:
             self.alertDialog.content = ft.Text(response["message"])
             ft.context.page.show_dialog(self.alertDialog)
+
+
+@ft.control
+class InsertBlockButton(ft.Button):
+    def __init__(
+        self,
+        async_session: async_sessionmaker[AsyncSession],
+        dropdown_ref: ft.Dropdown,
+    ) -> None:
+        super().__init__(
+            content="导入",
+            icon=ft.Icons.ADD,
+            expand=False,
+        )
+        self.async_session = async_session
+        self.dropdown_ref = dropdown_ref
+        self.on_click = self.button_clicked
+        self.alertDialog = ft.AlertDialog(
+            modal=True,
+            icon=ft.Icon(ft.Icons.ERROR_OUTLINED, color=ft.Colors.ERROR),
+            alignment=ft.Alignment.CENTER,
+            actions=[
+                ft.TextButton(
+                    "确定", on_click=lambda __e__: ft.context.page.pop_dialog()
+                ),
+            ],
+        )
+
+    async def button_clicked(self) -> None:
+        selected_files: List[ft.FilePickerFile] = await cast(
+            ft.FilePickerFile,
+            ft.FilePicker().pick_files(
+                allow_multiple=False,
+            ),
+        )
+        if selected_files and self.dropdown_ref.value:
+            response = await insert_block(
+                async_session=self.async_session,
+                block_code=self.dropdown_ref.value,
+                path=str(selected_files[0].path),
+            )
+
+            if response["code"] != 200:
+                self.alertDialog.content = ft.Text(response["message"])
+                ft.context.page.show_dialog(self.alertDialog)
+
+            else:
+                ft.context.page.pubsub.send_all("block_inserted")

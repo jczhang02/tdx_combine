@@ -21,6 +21,7 @@ async def get_mode_data(
 
     data: List[Dict[str, str | int]] = []
     for (record,) in records:
+        print(record.count)
         data.append(
             {
                 "code": record.code,

@@ -19,52 +19,53 @@ class ModeDataTable(ft.Container):
 
         self.data_table = ftd.DataTable2(
             show_checkbox_column=False,
-            expand=False,
             heading_row_color=ft.Colors.SECONDARY_CONTAINER,
             sort_ascending=False,
             clip_behavior=ft.ClipBehavior.HARD_EDGE,
             show_heading_checkbox=False,
             visible_horizontal_scroll_bar=None,
-            border=ft.Border.all(1, ft.Colors.BLUE),
             columns=self.get_data_columns(),  # pyright: ignore
-            # rows=self.get_initial_data_rows(),  # pyright: ignore
-            empty=ft.Text("暂无可组合计算板块"),
+            empty=ft.Container(
+                height=300,
+                expand=False,
+                content=ft.Container(
+                    content=ft.Column(
+                        [
+                            ft.Icon(
+                                ft.Icons.TABLE_VIEW,
+                                size=40,
+                                align=ft.Alignment.TOP_CENTER,
+                            ),
+                            ft.Text(
+                                "暂无数据",
+                                size=20,
+                                align=ft.Alignment.CENTER,
+                            ),
+                            ft.Text(
+                                "请导入或添加需要计算的板块",
+                                size=20,
+                                align=ft.Alignment.CENTER,
+                            ),
+                        ],
+                        alignment=ft.MainAxisAlignment.CENTER,
+                    )
+                ),
+                alignment=ft.Alignment.CENTER,
+            ),
         )
 
         ft.context.page.pubsub.subscribe(handler=self._handle_refresh)
 
-        self.height = 400
-        self.width = 600
-        self.expand = False
+        self.expand = True
         self.clip_behavior = ft.ClipBehavior.HARD_EDGE
 
-        self.content = ft.Column(
-            controls=[
-                self.data_table,
-            ],
-            height=400,
-            width=600,
-            scroll=ft.ScrollMode.ADAPTIVE,
-        )
+        self.content = self.data_table
 
     async def _handle_refresh(self, msg: str):
         if msg == "refresh_mode_table":
             data = await helpers.get_mode_data(async_session=self.async_session)
             self.data_table.rows = self.get_data_rows(data=data)  # pyright: ignore
             self.update()
-
-    def get_initial_data_rows(self) -> List[ftd.DataRow2]:
-        return [
-            ftd.DataRow2(
-                specific_row_height=30,
-                cells=[
-                    ft.DataCell(content=ft.Text()),
-                    ft.DataCell(content=ft.Text()),
-                    ft.DataCell(content=ft.Text()),
-                ],
-            )
-            for _ in range(10)
-        ]
 
     def get_data_rows(
         self, data: List[Dict[str, str | int]]
@@ -77,7 +78,7 @@ class ModeDataTable(ft.Container):
                     cells=[
                         ft.DataCell(content=ft.Text(cast(str, row["code"]))),
                         ft.DataCell(content=ft.Text(cast(str, row["name"]))),
-                        ft.DataCell(content=ft.Text(cast(str, row["code"]))),
+                        ft.DataCell(content=ft.Text(cast(str, row["count"]))),
                     ],
                 )
             )
@@ -87,15 +88,12 @@ class ModeDataTable(ft.Container):
         data_columns = [
             ftd.DataColumn2(
                 label=ft.Text("板块代码"),
-                heading_row_alignment=ft.MainAxisAlignment.CENTER,
             ),
             ftd.DataColumn2(
                 label=ft.Text("板块名称"),
-                heading_row_alignment=ft.MainAxisAlignment.CENTER,
             ),
             ftd.DataColumn2(
                 label=ft.Text("股票数量"),
-                heading_row_alignment=ft.MainAxisAlignment.CENTER,
                 numeric=True,
             ),
         ]
