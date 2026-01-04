@@ -11,6 +11,7 @@ dependencies = [
     "flet[all]>=0.80.0",
     "omegaconf>=2.3.0",
     "pandas>=2.3.3",
+    "platformdirs>=4.5.1",
     "sqlalchemy[asyncio]>=2.0.45",
 ]
 

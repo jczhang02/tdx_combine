@@ -1,3 +1,4 @@
+import os
 from typing import List, Optional, cast
 
 import flet as ft
@@ -37,6 +38,9 @@ class TdxPathButton(ft.FilledButton):
         )
 
         self.cfg["TDX_INSTALL_DIR"] = cur_install_dir
+        self.cfg["TDX_CACHE_DIR"] = os.path.join(
+            cur_install_dir, "T0002", "hq_cache"
+        )
 
         with open(CONFIG_PATH, "w", encoding="utf-8") as fp:
             OmegaConf.save(config=self.cfg, f=fp)

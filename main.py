@@ -1,3 +1,4 @@
+import os
 from typing import cast
 
 import flet as ft
@@ -9,77 +10,35 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from src.core import get_combination_count, update_data
-from src.core.database import Base, mode2database
-from src.core.database.helpers import get_status
+from pathlib import Path
+from src.core.database import Base
 from src.core.database.models import CalcResult, Mode
-from src.core.readers.modes import get_modes
 from src.ui import App
-from src.utils.constants import CONFIG_PATH, DATABASE_URL
-
-
-async def run():
-    with open(CONFIG_PATH, "r", encoding="utf-8") as fp:
-        cfg: DictConfig = cast(DictConfig, OmegaConf.load(fp))
-    # time1 = time.time()
-
-    engine: AsyncEngine = create_async_engine(
-        url=DATABASE_URL,
-        pool_size=5,
-        max_overflow=10,
-        echo=False,
-    )
-    async_session = async_sessionmaker(
-        bind=engine,
-        expire_on_commit=False,
-        autoflush=False,
-    )
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-    ret = await get_status(async_session=async_session)
-    print(ret)
-
-    re = await update_data(
-        async_session=async_session,
-        TDX_CACHE_DIR=cfg["TDX_CACHE_DIR"],
-        BLOCK_PATH=cfg["BLOCK_PATH"],
-        STOCK_PATH=cfg["STOCK_PATH"],
-        ADDITIONAL_PATH=cfg["ADDITIONAL_PATH"],
-        is_clear=True,
-    )
-
-    # time2 = time.time()
-
-    # print(f"time for update data: {time2 - time1}")
-
-    # print(re)
-
-    blocks = await get_modes(path=cfg["MODE_PATH"])
-    await mode2database(async_session=async_session, blocks=blocks)
-
-    # time2 = time.time()
-    ret = await get_combination_count(
-        async_session=async_session,
-    )
-
-    print(ret)
-
-    # export_combinations(
-    #     path=cfg["RET_SAVE_DIR"],
-    #     ret=ret,
-    # )
-
-    # block = session.query(Block).filter(Block.id == 99).one_or_none()
-    # time3 = time.time()
-    # print(time2 - time1)
-
-    await engine.dispose()
+from src.utils.constants import dirs, CONFIG_PATH, DATABASE_URL
 
 
 async def main(page: ft.Page) -> None:
-    with open(CONFIG_PATH, "r", encoding="utf-8") as fp:
-        cfg: DictConfig = cast(DictConfig, OmegaConf.load(fp))
+    if not os.path.exists(CONFIG_PATH):
+        cfg = cast(
+            DictConfig,
+            OmegaConf.create(
+                f"""
+TDX_INSTALL_DIR:
+TDX_CACHE_DIR:
+DATABASE_URL: {DATABASE_URL}
+DEFAULT_EXTENSION: blk
+BLOCK_PATH: tdxzs3.cfg
+STOCK_PATH: tdxhy.cfg
+ADDITIONAL_PATH: infoharbor_block.dat
+                """
+            ),
+        )
+        with open(CONFIG_PATH, "x", encoding="utf-8") as fp:
+            OmegaConf.save(cfg, fp)
+
+    else:
+        with open(CONFIG_PATH, "r", encoding="utf-8") as fp:
+            cfg: DictConfig = cast(DictConfig, OmegaConf.load(fp))
 
     engine: AsyncEngine = create_async_engine(
         url=cfg["DATABASE_URL"],
@@ -109,5 +68,5 @@ async def main(page: ft.Page) -> None:
 
 
 if __name__ == "__main__":
+    Path(dirs.user_data_dir).mkdir(parents=True, exist_ok=True)
     ft.run(main)
-    # asyncio.run(run())

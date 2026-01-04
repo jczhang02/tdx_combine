@@ -33,15 +33,11 @@ class TdxPathDisplay(ft.Container):
 
     def get_path_status(self) -> str:
         cur_install_dir: Optional[str] = self.cfg["TDX_INSTALL_DIR"]
+        cur_cache_dir: Optional[str] = self.cfg["TDX_CACHE_DIR"]
 
         text = "未设置"
 
-        if cur_install_dir:
-            cur_cache_dir = os.path.join(
-                cur_install_dir,
-                "T0002",
-                "hq_cache",
-            )
+        if cur_install_dir and cur_cache_dir:
             if os.path.exists(cur_cache_dir):
                 text = cur_install_dir
             else:
